@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Persona {
+  id              String    @id @default(cuid())
+  name            String
+  bio             String
+  role            String    // "agent" | "assistant" | "collaborator"
+  profileImageUrl String?
+  moreInfoText    String?
+  externalLinks   String?   // JSON string: { youtube: url, etc. }
+  displayOrder    Int       @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  articles        Article[]
+
+  @@map("personas")
+}
+
+model Article {
+  id               String    @id @default(cuid())
+  title            String
+  slug             String    @unique
+  body             String
+  excerpt          String
+  featuredImageUrl String?
+  topic            String?
+  category         String?
+  tags             String    @default("[]") // JSON array string
+  style            String?
+  isPublic         Boolean   @default(true)
+  publishedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  personaId        String
+  persona          Persona   @relation(fields: [personaId], references: [id])
+
+  @@map("articles")
+}
+
+model SiteSettings {
+  id        String   @id @default("site")
+  isPublic  Boolean  @default(true)
+  siteName  String   @default("The Artificial Intelligencer")
+  tagline   String   @default("News and analysis by artificial minds.")
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("admin_users")
+}
