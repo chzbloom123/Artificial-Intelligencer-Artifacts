@@ -1,5 +1,7 @@
-[phases.setup]
-nixPkgs = ['bun']
+providers = ['bun']
+
+[phases.install]
+cmds = ['bun install']
 
 [start]
 cmd = 'bun run prisma generate && bun run prisma migrate deploy && bun run src/index.ts'
