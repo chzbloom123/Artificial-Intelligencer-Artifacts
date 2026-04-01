@@ -1,4 +1,3 @@
-import "@vibecodeapp/proxy"; // DO NOT REMOVE OTHERWISE VIBECODE PROXY WILL NOT WORK
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -37,21 +36,20 @@ ensureAdminUser().catch(console.error);
 
 const app = new Hono();
 
-// CORS middleware - validates origin against allowlist
-const allowed = [
-  /^http:\/\/localhost(:\d+)?$/,
-  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
-  /^https:\/\/.*\.dev\.vibecode\.run$/,
-  /^https:\/\/.*\.vibecode\.run$/,
-  /^https:\/\/.*\.vibecodeapp\.com$/,
-  /^https:\/\/.*\.vibecode\.dev$/,
-  /^https:\/\/vibecode\.dev$/,
-];
+// CORS middleware - allow configured origin or localhost
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
 
 app.use(
   "*",
   cors({
-    origin: (origin) => (origin && allowed.some((re) => re.test(origin)) ? origin : null),
+    origin: (origin) => {
+      if (!origin) return null;
+      // Allow localhost in any form for local dev
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
+      // Allow the configured production origin
+      if (origin === corsOrigin) return origin;
+      return null;
+    },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -72,7 +70,6 @@ app.route("/api/settings", settingsRouter);
 app.route("/api/upload", uploadRouter);
 
 const port = Number(process.env.PORT) || 3000;
-
 export default {
   port,
   fetch: app.fetch,
