@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { serve } from "@hono/node-server";
 import "./env";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
@@ -39,7 +38,6 @@ ensureAdminUser().catch(console.error);
 const app = new Hono();
 
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
-
 app.use(
   "*",
   cors({
@@ -86,7 +84,7 @@ app.get("/uploads/:filename", async (c) => {
 const port = Number(process.env.PORT) || 3000;
 console.log(`✅ AIER API server starting on port ${port}`);
 
-serve({
+export default {
   fetch: app.fetch,
   port,
-});
+};
