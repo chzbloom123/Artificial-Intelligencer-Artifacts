@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { serve } from "@hono/node-server";
 import "./env";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
@@ -21,7 +22,6 @@ async function ensureAdminUser() {
     await prisma.adminUser.create({ data: { email, passwordHash } });
     console.log(`Admin user created: ${email}`);
   }
-  // Ensure site settings exist
   await prisma.siteSettings.upsert({
     where: { id: "site" },
     update: {},
@@ -38,7 +38,6 @@ ensureAdminUser().catch(console.error);
 
 const app = new Hono();
 
-// CORS middleware - allow configured origin or localhost
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
 
 app.use(
@@ -46,9 +45,7 @@ app.use(
   cors({
     origin: (origin) => {
       if (!origin) return null;
-      // Allow localhost in any form for local dev
       if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
-      // Allow the configured production origin
       if (origin === corsOrigin) return origin;
       return null;
     },
@@ -58,19 +55,16 @@ app.use(
   })
 );
 
-// Logging
 app.use("*", logger());
 
-// Health check endpoint
 app.get("/api/health", (c) => c.json({ status: "ok", service: "aier-api" }));
 
-// Routes
 app.route("/api/auth", authRouter);
 app.route("/api/articles", articlesRouter);
 app.route("/api/personas", personasRouter);
 app.route("/api/settings", settingsRouter);
 app.route("/api/upload", uploadRouter);
-// Serve uploaded files
+
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "/tmp/uploads";
 app.get("/uploads/:filename", async (c) => {
   const filename = c.req.param("filename");
@@ -90,8 +84,9 @@ app.get("/uploads/:filename", async (c) => {
 });
 
 const port = Number(process.env.PORT) || 3000;
-export default {
-  port,
+console.log(`✅ AIER API server starting on port ${port}`);
+
+serve({
   fetch: app.fetch,
-};
-console.log(`✅ AIER API server starting on port ${Number(process.env.PORT) || 3000}`);
+  port,
+});
