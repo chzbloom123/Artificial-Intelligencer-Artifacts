@@ -48,4 +48,4 @@ declare global {
   }
 }
 
-validateEnv();
+export const env = validateEnv();
