@@ -1,9 +1,12 @@
 import { Hono } from "hono";
 import { requireAdmin } from "../authMiddleware";
-import { createVibecodeSDK } from "@vibecodeapp/backend-sdk";
+import { writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import { join } from "path";
 
 const uploadRouter = new Hono();
-const vibecode = createVibecodeSDK();
+
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "/tmp/uploads";
 
 uploadRouter.post("/", requireAdmin, async (c) => {
   try {
@@ -24,9 +27,27 @@ uploadRouter.post("/", requireAdmin, async (c) => {
       return c.json({ error: { message: "File must be under 5MB" } }, 400);
     }
 
-    const result = await vibecode.storage.upload(file);
+    // Ensure upload directory exists
+    if (!existsSync(UPLOAD_DIR)) {
+      await mkdir(UPLOAD_DIR, { recursive: true });
+    }
 
-    return c.json({ data: { url: result.url } });
+    // Generate unique filename
+    const ext = file.name.split(".").pop() || "jpg";
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const filepath = join(UPLOAD_DIR, filename);
+
+    // Write file to disk
+    const buffer = await file.arrayBuffer();
+    await writeFile(filepath, Buffer.from(buffer));
+
+    // Return the URL - frontend should prepend the API base URL
+    const backendUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : (process.env.CORS_ORIGIN || "http://localhost:3000");
+    const url = `${backendUrl}/uploads/${filename}`;
+
+    return c.json({ data: { url } });
   } catch (error) {
     console.error("Upload error:", error);
     return c.json({ error: { message: "Upload failed" } }, 500);
