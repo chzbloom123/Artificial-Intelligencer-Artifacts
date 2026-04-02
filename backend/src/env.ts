@@ -9,12 +9,14 @@ const envSchema = z.object({
   PORT: z.string().optional().default("3000"),
   NODE_ENV: z.string().optional(),
   // Database
-  DATABASE_URL: z.string().default("file:./prisma/dev.db"),
+  DATABASE_URL: z.string(),
   // JWT Auth
   JWT_SECRET: z.string().default("aier-super-secret-jwt-key-change-in-production-2026"),
   // Admin credentials
   ADMIN_EMAIL: z.string().default("admin@aier.press"),
   ADMIN_PASSWORD: z.string().default("aier-admin-2026"),
+  // CORS
+  CORS_ORIGIN: z.string().optional(),
 });
 
 /**
@@ -23,38 +25,27 @@ const envSchema = z.object({
 function validateEnv() {
   try {
     const parsed = envSchema.parse(process.env);
-    console.log("✅ Environment variables validated successfully");
+    console.log("\u2705 Environment variables validated successfully");
     return parsed;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("❌ Environment variable validation failed:");
-      error.issues.forEach((err: any) => {
+      console.error("\u274C Environment variable validation failed:");
+      error.errors.forEach((err) => {
         console.error(`  - ${err.path.join(".")}: ${err.message}`);
       });
-      console.error("\nPlease check your .env file and ensure all required variables are set.");
-      process.exit(1);
+    } else {
+      console.error("\u274C Unknown error during env validation:", error);
     }
-    throw error;
+    process.exit(1);
   }
 }
 
-/**
- * Validated and typed environment variables
- */
-export const env = validateEnv();
-
-/**
- * Type of the validated environment variables
- */
 export type Env = z.infer<typeof envSchema>;
 
-/**
- * Extend process.env with our environment variables
- */
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace NodeJS {
-    // eslint-disable-next-line import/namespace
-    interface ProcessEnv extends z.infer<typeof envSchema> {}
+    interface ProcessEnv extends Env {}
   }
 }
+
+validateEnv();
