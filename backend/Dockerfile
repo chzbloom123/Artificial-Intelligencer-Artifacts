@@ -18,4 +18,4 @@ RUN bunx prisma generate
 EXPOSE 3000
 
 # Run migrations and start server
-CMD ["sh", "-c", "bunx prisma migrate deploy && bun run src/index.ts"]
+CMD ["sh", "-c", "bunx prisma db push --accept-data-loss && bun run src/index.ts"]
