@@ -9,7 +9,7 @@ const envSchema = z.object({
   PORT: z.string().optional().default("3000"),
   NODE_ENV: z.string().optional(),
   // Database
-  DATABASE_URL: z.string(),
+  DATABASE_URL: z.string().default("file:./prisma/dev.db),
   // JWT Auth
   JWT_SECRET: z.string().default("aier-super-secret-jwt-key-change-in-production-2026"),
   // Admin credentials
