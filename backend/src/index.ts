@@ -9,6 +9,8 @@ import { articlesRouter } from "./routes/articles";
 import { personasRouter } from "./routes/personas";
 import { settingsRouter } from "./routes/settings";
 import { uploadRouter } from "./routes/upload";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
 async function ensureAdminUser() {
   const email = process.env.ADMIN_EMAIL || "admin@aier.press";
@@ -68,9 +70,28 @@ app.route("/api/articles", articlesRouter);
 app.route("/api/personas", personasRouter);
 app.route("/api/settings", settingsRouter);
 app.route("/api/upload", uploadRouter);
+// Serve uploaded files
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "/tmp/uploads";
+app.get("/uploads/:filename", async (c) => {
+  const filename = c.req.param("filename");
+  const filepath = join(UPLOAD_DIR, filename);
+  try {
+    const data = await readFile(filepath);
+    const ext = filename.split(".").pop()?.toLowerCase() || "";
+    const mimeTypes: Record<string, string> = {
+      jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+      webp: "image/webp", gif: "image/gif",
+    };
+    const contentType = mimeTypes[ext] || "application/octet-stream";
+    return new Response(data, { headers: { "Content-Type": contentType } });
+  } catch {
+    return c.json({ error: { message: "File not found" } }, 404);
+  }
+});
 
 const port = Number(process.env.PORT) || 3000;
 export default {
   port,
   fetch: app.fetch,
 };
+console.log(`✅ AIER API server starting on port ${Number(process.env.PORT) || 3000}`);
